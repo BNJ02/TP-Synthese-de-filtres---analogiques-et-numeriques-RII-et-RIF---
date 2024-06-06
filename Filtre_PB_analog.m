@@ -1,0 +1,169 @@
+clc
+clear all
+
+% Fréquences d'échantillonnage et de tracé
+duree = 1;
+fe = 8192;   % Fréquence d'échantillonnage (Hz)
+fmin = 250;  % Fréquence minimale de tracé (Hz)
+fmax = 550;  % Fréquence maximale de tracé (Hz)
+n = 1000;    % Nombre de points de tracé
+
+% Retourne le signal en fonction du temps
+[sig,t] = gamme(duree, fe);
+
+% Produit le son du signal avec la fe sélectionnée
+% soundsc(sig, fe)
+
+% Transformée de Fourier de notre signal + affichage spectre
+S = fft(sig)/fe;
+f = [0:length(sig)-1]*(fe/length(S));
+plot(f, abs(S)); 
+axis([fmin fmax 0 0.6])
+
+% Spécifications du filtre
+Ap = 3;     % Atténuation maximale en bande passante (dB)
+Aa = 40;    % Atténuation minimale en bande atténuée (dB)
+fc = 420;   % Fréquence de coupure (Hz)
+df = 20;   % Largeur de la bande de transition (Hz)
+
+% Définition des fréquences atténuation et passante
+fp = fc - df/2;
+fa = fc + df/2;
+% donc pour les pulsations respectives
+wp = 2*pi*fp;
+wa = 2*pi*fa;
+
+% Calcul de l'ordre et des coefficients du filtre de Butterworth
+[n1,wn1] = buttord(wp,wa,Ap,Aa,'s');
+[Bb,Ab] = butter(n1,wn1,'low','s');
+
+% Calcul de l'ordre et des coefficients du filtre de Chebyshev de type 1
+[n2,wn2] = cheb1ord(wp,wa,Ap,Aa,'s');
+[Bc1,Ac1] = cheby1(n2,Ap,wn2,'low','s');
+
+% Calcul de l'ordre et des coefficients du filtre de Chebyshev de type 2
+[n3,wn3] = cheb2ord(wp,wa,Ap,Aa,'s');
+[Bc2,Ac2] = cheby2(n3,Aa,wn3,'low','s');
+
+% Calcul de l'ordre et des coefficients du filtre de Cauer
+[n4,wn4] = ellipord(wp,wa,Ap,Aa,'s');
+[Be,Ae] = ellip(n4,Ap,Aa,wn4,'low','s');
+
+% Affichage de l'ordre de chaque filtre
+disp(['Ordre du filtre de Butterworth : ', num2str(n1)]);
+disp(['Ordre du filtre de Chebyshev de type 1 : ', num2str(n2)]);
+disp(['Ordre du filtre de Chebyshev de type 2 : ', num2str(n3)]);
+disp(['Ordre du filtre de Cauer : ', num2str(n4)]);
+
+f = linspace(fmin,fmax,n);
+
+% Calcul des réponses fréquentielles en amplitude des quatre filtres
+Hb = freqs(Bb,Ab,2*pi*f);
+close all
+hold off
+plot(f, 20*log10(abs(Hb)));
+hold on;
+
+Hc1 = freqs(Bc1,Ac1,2*pi*f);
+plot(f, 20*log10(abs(Hc1)));
+
+Hc2 = freqs(Bc2,Ac2,2*pi*f);
+plot(f, 20*log10(abs(Hc2)));
+
+Hce = freqs(Be,Ae,2*pi*f);
+plot(f, 20*log10(abs(Hce)));
+
+xlabel('Fréquence (Hz)');
+ylabel('Amplitude (dB)');
+legend('Butterworth','Chebyshev 1','Chebyshev 2','Cauer');
+grid on;
+hold off;
+
+% Application des quatre filtres au signal audio synthétique
+yb = lsim(tf(Bb,Ab),sig,t);
+yc1 = lsim(tf(Bc1,Ac1),sig,t);
+yc2 = lsim(tf(Bc2,Ac2),sig,t);
+ye = lsim(tf(Be,Ae),sig,t);
+
+% Ecoute du signal après filtrage
+%sound(yb,fe);
+%sound(yc1,fe);
+%sound(yc2,fe);
+%sound(ye,fe);
+
+%%% Butterworth %%%*
+fig = figure;
+set(fig, 'Name', 'Butterworth', 'NumberTitle', 'off');
+% Tracé du signal filtré
+subplot(2,1,1)
+title("Butterworth")
+plot(1:length(yb),yb);
+xlabel('Temps (échantillons)');
+ylabel('Amplitude');
+
+% Tracé du spectre d'amplitude du signal filtré
+S = fft(yb)/fe;
+f = [0:length(yb)-1]*(fe/length(S));
+subplot(2,1,2)
+plot(f, 20*log10(abs(S)));
+axis([fmin fmax -200 0]);
+xlabel('Fréquence (Hz)');
+ylabel('Amplitude (dB)');
+
+
+%%% Chebyshev 1 %%%
+fig = figure;
+set(fig, 'Name', 'Chebyshev 1', 'NumberTitle', 'off');
+% Tracé du signal filtré
+subplot(2,1,1)
+plot(1:length(yc1),yc1);
+xlabel('Temps (échantillons)');
+ylabel('Amplitude');
+
+% Tracé du spectre d'amplitude du signal filtré
+S = fft(yc1)/fe;
+f = [0:length(yc1)-1]*(fe/length(S));
+subplot(2,1,2)
+plot(f, 20*log10(abs(S)));
+axis([fmin fmax -200 0]);
+xlabel('Fréquence (Hz)');
+ylabel('Amplitude (dB)');
+
+
+%%% Chebyshev 2 %%%
+fig = figure;
+set(fig, 'Name', 'Chebyshev 2', 'NumberTitle', 'off');
+% Tracé du signal filtré
+subplot(2,1,1)
+plot(1:length(yc2),yc2);
+xlabel('Temps (échantillons)');
+ylabel('Amplitude');
+
+% Tracé du spectre d'amplitude du signal filtré
+S = fft(yc2)/fe;
+f = [0:length(yc2)-1]*(fe/length(S));
+subplot(2,1,2)
+plot(f, 20*log10(abs(S)));
+axis([fmin fmax -200 0]);
+xlabel('Fréquence (Hz)');
+ylabel('Amplitude (dB)');
+
+
+
+%%% Cauer %%%
+fig = figure;
+set(fig, 'Name', 'Cauer', 'NumberTitle', 'off');
+% Tracé du signal filtré
+subplot(2,1,1)
+plot(1:length(ye),ye);
+xlabel('Temps (échantillons)');
+ylabel('Amplitude');
+
+% Tracé du spectre d'amplitude du signal filtré
+S = fft(ye)/fe;
+f = [0:length(ye)-1]*(fe/length(S));
+subplot(2,1,2)
+plot(f, 20*log10(abs(S)));
+axis([fmin fmax -200 0]);
+xlabel('Fréquence (Hz)');
+ylabel('Amplitude (dB)');
