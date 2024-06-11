@@ -22,7 +22,7 @@ sig, t = gamme(duree, fe)
 # sd.play(sig, fe)
 # sd.wait()  # Attend la fin de la lecture
 
-# # Transformée de Fourier de notre signal + affichage spectre
+# Transformée de Fourier de notre signal + affichage spectre
 S = np.fft.fft(sig) / fe
 f = np.fft.fftfreq(sig.shape[0], d=1/fe)
 
